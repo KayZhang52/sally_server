@@ -1,0 +1,71 @@
+name: Go
+
+on:
+  push:
+    branches: ['*']
+    tags: ['v*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.22.x
+        cache: true
+
+    - name: Build
+      run: make build
+
+    - name: Test
+      run: make cover
+
+    - name: Upload coverage to codecov.io
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      name: Check out repository
+    - uses: actions/setup-go@v5
+      name: Set up Go
+      with:
+        go-version: 1.22.x
+        cache: false  # managed by golangci-lint
+
+    - uses: golangci/golangci-lint-action@v6
+      name: Install golangci-lint
+      with:
+        version: latest
+        args: --help # make lint will run the linter
+
+    - run: make lint
+      name: Lint
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
